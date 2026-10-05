@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 
-# Get the date, first 4 chars of branch name and short commit hash
-date=$(date -u +"%Y%m%d")
+# Get the first 4 chars of branch name (or a release tag), short commit hash and date
 branch=${1:-$(git rev-parse --abbrev-ref HEAD | cut -c1-4)}
 commit=${2:-$(git rev-parse --short HEAD)}
+date=${3:-$(date -u +"%Y%m%d")}
 
 uppercase_char() {
     local char=$1

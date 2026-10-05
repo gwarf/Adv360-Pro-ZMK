@@ -100,6 +100,8 @@ Updating from V2.0 based firmwares to V3.0 based firmwares can be a rather compl
 
 Starting on 11/15/2023 the Advantage 360 Pro will now automatically record the compilation date, branch and Git commit hash in a macro that can be accessed with Mod+V. This will type out the following string: YYYYMMDD-XXXX-YYYYYY, where XXXX is the first 4 characters of the Git branch and YYYYYY is the Git commit hash. In addition to this the builds compiled by GitHub actions are now timestamped and also record the commit hash in the filename. 
 
+Pushing a tag made of letters, digits and dots (for example `v3.0.1`) builds a GitHub release. The tag replaces the branch in the version string and the date is the commit date, so the release title is exactly what Mod+V types (`YYYYMMDD-v3.0.1-commit`), and the release carries `adv360-v3.0.1-left.uf2` and `adv360-v3.0.1-right.uf2`.
+
 ## N-Key Rollover
 
 By default this keyboard has NKRO enabled, however for compatibility reasons the higher ranges are not enabled. If you want to use F13-F24 or the INTL1-9 keys with NKRO enabled you can change `CONFIG_ZMK_HID_KEYBOARD_EXTENDED_REPORT=n` to `CONFIG_ZMK_HID_KEYBOARD_EXTENDED_REPORT=y` in [adv360_left_defconfig](/config/boards/arm/adv360/adv360_left_defconfig#L65)

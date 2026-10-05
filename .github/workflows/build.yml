@@ -8,18 +8,35 @@ jobs:
     container:
       image: zmkfirmware/zmk-build-arm:stable
     name: Build
+    outputs:
+      version: ${{ steps.get_info.outputs.version }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
       - name: Get version data
         id: get_info
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          timestamp=$(date +"%Y%m%d%H%M")
           commit=$(echo "${{ github.sha }}" | cut -c1-7)
-          file_prefix=$timestamp-$commit
-          branch_name=$(echo "${{ github.ref }}" | awk -F'/' '{print $3}' | cut -c1-4)
+          if [ "${{ github.ref_type }}" = "tag" ]; then
+            label="$REF_NAME"
+            # get_version.sh silently drops any other character, which would break the release/Mod+V match
+            if ! echo "$label" | grep -qE '^[A-Za-z0-9.]+$'; then
+              echo "Release tag '$label' may only contain letters, digits and dots" >&2
+              exit 1
+            fi
+            date=$(git -c safe.directory='*' log -1 --format=%cd --date=format:%Y%m%d)
+            file_prefix=adv360-$label
+          else
+            label=$(echo "${{ github.ref }}" | awk -F'/' '{print $3}' | cut -c1-4)
+            date=$(date -u +"%Y%m%d")
+            file_prefix=$(date +"%Y%m%d%H%M")-$commit
+          fi
           echo "file_prefix=$file_prefix" >> $GITHUB_OUTPUT
-          bin/get_version.sh $branch_name $commit
+          # Mod+V sends unshifted keycodes, so the keyboard types this string in lowercase
+          echo "version=$(echo "$date-$label-$commit" | tr '[A-Z]' '[a-z]')" >> $GITHUB_OUTPUT
+          bin/get_version.sh "$label" "$commit" "$date"
       - name: Cache west modules
         uses: actions/cache@v4
         env:
@@ -59,3 +76,25 @@ jobs:
           path: |
             ${{ steps.get_info.outputs.file_prefix }}-left.uf2
             ${{ steps.get_info.outputs.file_prefix }}-right.uf2
+
+  release:
+    needs: build
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Download firmware
+        uses: actions/download-artifact@v4
+        with:
+          name: firmware
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ needs.build.outputs.version }}
+          REF_NAME: ${{ github.ref_name }}
+        run: |
+          gh release create "$REF_NAME" --repo "${{ github.repository }}" --verify-tag \
+            --title "$VERSION" --generate-notes \
+            --notes "Mod+V on this firmware types \`$VERSION\`." \
+            adv360-*-left.uf2 adv360-*-right.uf2
