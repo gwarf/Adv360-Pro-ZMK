@@ -15,10 +15,12 @@ jobs:
         uses: actions/checkout@v4
       - name: Get version data
         id: get_info
+        env:
+          REF_NAME: ${{ github.ref_name }}
         run: |
           commit=$(echo "${{ github.sha }}" | cut -c1-7)
           if [ "${{ github.ref_type }}" = "tag" ]; then
-            label="${{ github.ref_name }}"
+            label="$REF_NAME"
             # get_version.sh silently drops any other character, which would break the release/Mod+V match
             if ! echo "$label" | grep -qE '^[A-Za-z0-9.]+$'; then
               echo "Release tag '$label' may only contain letters, digits and dots" >&2
@@ -90,8 +92,9 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           VERSION: ${{ needs.build.outputs.version }}
+          REF_NAME: ${{ github.ref_name }}
         run: |
-          gh release create "${{ github.ref_name }}" --repo "${{ github.repository }}" --verify-tag \
+          gh release create "$REF_NAME" --repo "${{ github.repository }}" --verify-tag \
             --title "$VERSION" --generate-notes \
             --notes "Mod+V on this firmware types \`$VERSION\`." \
             adv360-*-left.uf2 adv360-*-right.uf2
